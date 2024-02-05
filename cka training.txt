@@ -1,0 +1,423 @@
+k auth can-i create deployments --as smoke -n applications # YES
+k auth can-i delete deployments --as smoke -n applications # YES
+k auth can-i delete pods --as smoke -n applications # YES
+k auth can-i delete sts --as smoke -n applications # YES
+k auth can-i delete secrets --as smoke -n applications # NO
+k auth can-i list deployments --as smoke -n applications # YES
+k auth can-i list secrets --as smoke -n applications # NO
+k auth can-i get secrets --as smoke -n applications # NO
+
+# view in all namespaces but not kube-system
+k auth can-i list pods --as smoke -n default # YES
+k auth can-i list pods --as smoke -n applications # YES
+k auth can-i list pods --as smoke -n kube-public # YES
+k auth can-i list pods --as smoke -n kube-node-lease # YES
+k auth can-i list pods --as smoke -n kube-system # NO
+
+--------------
+>>How to setup Vim for the K8s exams
+First create or open (if already exists) file .vimrc :
+vim ~/.vimrc
+Now enter (in insert-mode activated with i) the following lines:
+set expandtab
+set tabstop=2
+set shiftwidth=2
+Save and close the file by pressing Esc followed by :x and Enter.
+Explanation
+Whenever you open Vim now as the current user, these settings will be used.
+
+If you ssh onto a different server, these settings will not be transferred.
+
+Settings explained:
+
+expandtab: use spaces for tab
+tabstop: amount of spaces used for tab
+shiftwidth: amount of spaces used during indentation
+
+-------------
+
+Apiserver Crash
+Configure a wrong argument
+
+The idea here is to misconfigure the Apiserver in different ways, then check possible log locations for errors.
+You should be very comfortable with situations where the Apiserver is not coming back up.
+Configure the Apiserver manifest with a new argument --this-is-very-wrong .
+Check if the Pod comes back up and what logs this causes.
+
+>>Fix the Apiserver again.
+Log locations to check:
+
+/var/log/pods
+/var/log/containers
+crictl ps + crictl logs
+docker ps + docker logs (in case when Docker is used)
+kubelet logs: /var/log/syslog or journalctl
+
+solutions
+# always make a backup !
+cp /etc/kubernetes/manifests/kube-apiserver.yaml ~/kube-apiserver.yaml.ori
+
+# make the change
+vim /etc/kubernetes/manifests/kube-apiserver.yaml
+
+# wait till container restarts
+watch crictl ps
+
+# check for apiserver pod
+k -n kube-system get pod
+
+Apiserver is not coming back, we messed up!
+
+
+# check pod logs
+cat /var/log/pods/kube-system_kube-apiserver-controlplane_a3a455d471f833137588e71658e739da/kube-apiserver/X.log
+> 2022-01-26T10:41:12.401641185Z stderr F Error: unknown flag: --this-is-very-wrong
+
+Now undo the change and continue
+
+
+# smart people use a backup
+cp ~/kube-apiserver.yaml.ori /etc/kubernetes/manifests/kube-apiserver.yaml
+
+
+Misconfigure ETCD connection
+Change the existing Apiserver manifest argument to: --etcd-servers=this-is-very-wrong .
+
+Check what the logs say, without using anything in /var
+Fix the Apiserver again.
+
+Solution
+
+# always make a backup !
+cp /etc/kubernetes/manifests/kube-apiserver.yaml ~/kube-apiserver.yaml.ori
+
+# make the change
+vim /etc/kubernetes/manifests/kube-apiserver.yaml
+
+# wait till container restarts
+watch crictl ps
+
+# check for apiserver pod
+k -n kube-system get pod
+
+
+Apiserver is not coming back, we messed up!
+
+
+# 1) if we would check the /var directory
+cat /var/log/pods/kube-system_kube-apiserver-controlplane_e24b3821e9bdc47a91209bfb04056993/kube-apiserver/X.log
+> Err: connection error: desc = "transport: Error while dialing dial tcp: address this-is-very-wrong: missing port in address". Reconnecting...
+
+# 2) but here we want to find other ways, so we check the container logs
+crictl ps # maybe run a few times, because the apiserver container get's restarted
+crictl logs f669a6f3afda2
+> Error while dialing dial tcp: address this-is-very-wrong: missing port in address. Reconnecting...
+
+# 3) what about syslogs
+journalctl | grep apiserver # nothing specific
+cat /var/log/syslog | grep apiserver # nothing specific
+
+Now undo the change and continue
+
+
+# smart people use a backup
+cp ~/kube-apiserver.yaml.ori /etc/kubernetes/manifests/kube-apiserver.yaml
+
+
+Invalid Apiserver Manifest YAML
+Change the Apiserver manifest and add invalid YAML, something like this:
+
+apiVersionTHIS IS VERY ::::: WRONG v1
+kind: Pod
+metadata:
+Check what the logs say, and fix again.
+
+Fix the Apiserver again.
+
+Solution
+
+# always make a backup !
+cp /etc/kubernetes/manifests/kube-apiserver.yaml ~/kube-apiserver.yaml.ori
+
+# make the change
+vim /etc/kubernetes/manifests/kube-apiserver.yaml
+
+# wait till container restarts
+watch crictl ps
+
+# check for apiserver pod
+k -n kube-system get pod
+
+Apiserver is not coming back, we messed up!
+
+
+# seems like the kubelet can't even create the apiserver pod/container
+/var/log/pods # nothing
+crictl logs # nothing
+
+# syslogs:
+tail -f /var/log/syslog | grep apiserver
+> Could not process manifest file err="/etc/kubernetes/manifests/kube-apiserver.yaml: couldn't parse as pod(yaml: mapping values are not allowed in this context), please check config file"
+
+# or:
+journalctl | grep apiserver
+> Could not process manifest file" err="/etc/kubernetes/manifests/kube-apiserver.yaml: couldn't parse as pod(yaml: mapping values are not allowed in this context), please check config file
+
+Now undo the change and continue
+
+
+# smart people use a backup
+cp ~/kube-apiserver.yaml.ori /etc/kubernetes/manifests/kube-apiserver.yaml
+
+
+----------------------------------
+
+>>Application Misconfigured
+Deployment is not coming up, find the error and fix it
+There is a Deployment in Namespace application1 which seems to have issues and is not getting ready.
+
+Fix it by only editing the Deployment itself and no other resources.
+
+Tip
+
+k -n application1 get deploy
+
+k -n application1 logs deploy/api
+
+k -n application1 describe deploy api
+
+k -n application1 get cm
+
+It looks like a wrong ConfigMap name was used, let's change it
+k -n application1 edit deploy api
+
+spec:
+  template:
+    spec:
+      containers:
+      - env:
+        - name: CATEGORY
+          valueFrom:
+            configMapKeyRef:
+              key: category
+              name: configmap-category
+
+After waiting a bit we should see all replicas being ready
+
+k -n application1 get deploy api
+
+--------------------------------------------
+Application Multi Container Issue
+
+There is a multi-container Deployment in Namespace management which seems to have issues and is not getting ready.
+
+Write the logs of all containers to /root/logs.log .
+
+Can you see the reason for failure?
+
+k -n management get deploy
+
+k -n management logs -h
+
+solution
+
+Solution
+
+k -n management logs deploy/collect-data -c nginx >> /root/logs.log
+k -n management logs deploy/collect-data -c httpd >> /root/logs.log
+
+The issue seems that both containers have processes that want to listen on port 80. Depending on container creation order and speed, the first will succeed, the other will fail.
+
+
+
+Application Multi Container Issue
+Fix the Deployment in Namespace management where both containers try to listen on port 80.
+
+Remove one container.
+Tip
+
+k -n management edit deploy collect-data
+
+Solution
+
+Delete one of the containers
+
+
+spec:
+  template:
+    spec:
+      containers:
+      - image: nginx:1.21.6-alpine
+        imagePullPolicy: IfNotPresent
+        name: nginx
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+#      - image: httpd:2.4.52-alpine
+#        imagePullPolicy: IfNotPresent
+#        name: httpd
+#        resources: {}
+#        terminationMessagePath: /dev/termination-log
+#        terminationMessagePolicy: File
+
+# should show all ready now
+k -n management get deploy
+
+You could also try to run nginx or httpd on a different port. But this would require Nginx or Apache (httpd) specific settings.
+
+
+---------------------------
+There is a multi-container Deployment in Namespace management which seems to have issues and is not getting ready.
+
+Write the logs of all containers to /root/logs.log .
+
+Can you see the reason for failure?
+
+Tip
+
+k -n management get deploy
+
+k -n management logs -h
+
+solutions
+
+k -n management logs deploy/collect-data -c nginx >> /root/logs.log
+
+k -n management logs deploy/collect-data -c httpd >> /root/logs.log
+
+The issue seems that both containers have processes that want to listen on port 80. Depending on container creation order and speed, the first will succeed, the other will fail.
+
+Fix the Deployment in Namespace management where both containers try to listen on port 80.
+
+Remove one container.
+
+Fix the Deployment in Namespace management where both containers try to listen on port 80.
+
+Remove one container.
+
+
+Tip
+
+k -n management edit deploy collect-data
+
+Solution
+
+Delete one of the containers
+
+
+spec:
+  template:
+    spec:
+      containers:
+      - image: nginx:1.21.6-alpine
+        imagePullPolicy: IfNotPresent
+        name: nginx
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+#      - image: httpd:2.4.52-alpine
+#        imagePullPolicy: IfNotPresent
+#        name: httpd
+#        resources: {}
+#        terminationMessagePath: /dev/termination-log
+#        terminationMessagePolicy: File
+
+# should show all ready now
+k -n management get deploy
+
+You could also try to run nginx or httpd on a different port. But this would require Nginx or Apache (httpd) specific settings.
+
+-----------------------
+
+ConfigMap Access in Pods
+Create ConfigMaps
+
+Create a ConfigMap named trauerweide with content tree=trauerweide
+Create the ConfigMap stored in existing file /root/cm.yaml 
+
+Tip
+
+# create a new ConfigMap
+kubectl create cm trauerweide -h
+
+# create a ConfigMap from file
+kubectl create -f ...
+ 
+solutions
+
+kubectl create cm trauerweide --from-literal tree=trauerweide
+
+
+
+
+Access ConfigMaps in Pod
+Create a Pod named pod1 of image nginx:alpine
+Make key tree of ConfigMap trauerweide available as environment variable TREE1
+Mount all keys of ConfigMap birke as volume. The files should be available under /etc/birke/*
+Test env+volume access in the running Pod
+
+apiVersion: v1
+kind: Pod
+metadata:
+  name: pod1
+spec:
+  volumes:
+  - name: birke
+    configMap:
+      name: birke
+  containers:
+  - image: nginx:alpine
+    name: pod1
+    volumeMounts:
+      - name: birke
+        mountPath: /etc/birke
+    env:
+      - name: TREE1
+        valueFrom:
+          configMapKeyRef:
+            name: trauerweide
+            key: tree
+
+kubectl -f /root/cm.yaml create
+
+
+
+
+kubectl exec pod1 -- env | grep "TREE1=trauerweide"
+kubectl exec pod1 -- cat /etc/birke/tree
+kubectl exec pod1 -- cat /etc/birke/level
+kubectl exec pod1 -- cat /etc/birke/department
+
+controlplane $ kubectl exec pod1 -- env | grep "TREE1=trauerweide"
+TREE1=trauerweide
+controlplane $ kubectl exec pod1 -- cat /etc/birke/tree
+birke
+controlplane $ kubectl exec pod1 -- cat /etc/birke/level
+3
+controlplane $ kubectl exec pod1 -- cat /etc/birke/department
+park 
+
+configmap trauerweide
+kubectl create cm trauerweide --from-literal tree=trauerweide
+ 
+apiVersion: v1
+data:
+  tree: trauerweide
+kind: ConfigMap
+metadata:
+  creationTimestamp: "2024-01-31T16:36:26Z"
+  name: trauerweide
+  namespace: default
+  resourceVersion: "3490"
+  uid: f643be24-5dbd-4360-ac96-637553eb39bb
+  
+
+kubectl -f /root/cm.yaml create
+apiVersion: v1
+data:
+  tree: birke
+  level: "3"
+  department: park
+kind: ConfigMap
+metadata:
+  name: birke

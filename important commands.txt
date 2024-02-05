@@ -1,0 +1,1794 @@
+important commands
+ lshw -c memory
+ 
+ check ubuntu version 
+lsb_release -a
+No LSB modules are available.
+Distributor ID: Ubuntu
+Description:    Ubuntu 22.04.2 LTS
+Release:        22.04
+Codename:       jammy
+
+
+http://my-otel-demo-frontendproxy:8080
+ 
+ scp -i ubuntu22masterworker.ppk ubuntu@35.184.123.30:/home/ubuntu/keplerlogs.csv .keplerlogs.csv
+ 
+ how to check public-ip   curl https://ipinfo.io/ip
+
+how to enable metric server
+https://www.linuxtechi.com/how-to-install-kubernetes-metrics-server/
+
+
+hpa
+https://medium.com/avmconsulting-blog/horizontal-pod-autoscaler-hpa-in-kubernetes-part1-afba286becf
+
+while true; do wget -q -O- http://php-apache.demo.svc.cluster.local; done
+
+
+kubectl create deployment sampleapp --image=signoz/sample-flask-app -n sample 
+kubectl expose deployment  sampleapp --port=80 -n sample
+kubectl --namespace sample patch svc sampleapp -p '{"spec": {"type": "NodePort"}}'
+
+kubectl create deployment php-apache --image=k8s.gcr.io/hpa-example
+kubectl set resources deployment php-apache --requests=cpu=200m
+kubectl expose deployment php-apache --port=80
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: php-apache
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: php-apache
+  template:
+    metadata:
+      labels:
+        run: php-apache
+    spec:
+      containers:
+      - name: php-apache
+        image: k8s.gcr.io/hpa-example
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: "200m"  # Set the CPU request here
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: php-apache
+spec:
+  selector:
+    run: php-apache
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
+  type: ClusterIP
+
+
+
+
+kubectl create deployment nginx-deployment --image=nginx:latest --replicas=1 --port=80
+
+docker tag local-image:tagname new-repo:tagname
+docker push new-repo:tagname
+
+
+ kubectl config get-clusters
+ kubectl config get-users
+ kubectl config get-contexts
+  kubectl config use-context kubernetes-admin@kubernetes
+ 
+kubectl config set-context --current --namespace=default
+
+kubectl config set-context $(kubectl config current-context) --namespace=demo
+kubectl wait pods --for condition=Ready --timeout -1s --all
+
+schedule
+kubectl taint node ubunturms83 node-role.kubernetes.io/control-plane:NoSchedule
+kubectl taint node ubunturms83 node-role.kubernetes.io/control-plane:NoExecute
+kubectl taint node master node-role.kubernetes.io/control-plane:NoSchedule
+node-role.kubernetes.io/control-plane:NoSchedule-
+
+kubectl describe node masternode | grep -i taint
+kubectl taint node masterkubeadm node-role.kubernetes.io/control-plane:NoSchedule
+kubectl taint node kubemasternode node.kubernetes.io/not-ready:NoExecute-
+
+http://prometheus:9090
+
+kubectl set env daemonset/calico-node -n calico-system IP_AUTODETECTION_METHOD=interface=eth1
+IP_AUTODETECTION_METHOD=interface=eth1 
+kubectl taint node node1 node-role.kubernetes.io/control-plane:NoSchedule-
+https://kubernetes.io/docs/concepts/cluster-administration/addons/
+
+kubectl config get-contexts -o name
+
+token
+token=$(microk8s kubectl -n kube-system get secret | grep default-token | cut -d " " -f1)
+microk8s kubectl -n kube-system describe secret $token
+kubectl create token default
+
+delete pod
+for p in $(sudo kubectl get pods | grep Terminating | awk '{print $1}'); do sudo kubectl delete pod $p --grace-period=0 --force;done
+kubectl get pods | grep Error | cut -d' ' -f 1 | xargs kubectl delete pod
+kubectl get pods | grep -i terminating | cut -d' ' -f 1 | xargs kubectl delete pod
+kubectl get pods | grep -i CrashLoopBackOff | cut -d' ' -f 1 | xargs kubectl delete pod
+NS=`kubectl get ns |grep Terminating | awk 'NR==1 {print $1}'` && kubectl get namespace "$NS" -o json   | tr -d "\n" | sed "s/\"finalizers\": \[[^]]\+\]/\"finalizers\": []/"   | kubectl replace --raw /api/v1/namespaces/$NS/finalize -f -
+for p in $(sudo kubectl get pv| grep -i  Terminating | awk '{print $1}'); do sudo kubectl delete pv  $p --grace-period=0 --force;done
+for p in $(sudo kubectl get pod -n kubescape| grep -i  Terminating | awk '{print $1}'); do sudo kubectl delete pod -n kubescape  $p --grace-period=0 --force;done
+for ((i = 0; i < 3; i++)); do NS=$(kubectl get ns | grep Terminating | awk 'NR==1 {print $1}'); kubectl get namespace "$NS" -o json | tr -d "\n" | sed "s/\"finalizers\": \[[^]]\+\]/\"finalizers\": []/" | kubectl replace --raw /api/v1/namespaces/$NS/finalize -f -; done
+for p in $(sudo kubectl get pod -n monitoing |grep -i CrashLoopBackOff | awk '{print $1}'); do sudo kubectl delete pod -n monitoring  $p --grace-period=0 --force;done
+
+kubectl get pods -n platform --no-headers -o custom-columns=":metadata.name" | xargs -I {} kubectl delete pod {} -n platform
+kubectl get pv --no-headers -o custom-columns=":metadata.name" | xargs -I {} kubectl delete pv {}
+kubectl get pvc -n platform --no-headers -o custom-columns=":metadata.name" | xargs -I {} kubectl delete pvc {} -n platform
+
+
+
+https://unix.stackexchange.com/questions/675288/disk-full-but-cannot-find-were-is-the-used-space-ubuntu
+sudo lsof | grep REG | grep -v "stat: No such file or directory" | grep -v DEL | awk '{if ($NF=="(deleted)") {x=3;y=1} else {x=2;y=0}; {print $(NF-x) "  " $(NF-y) } }'  | sort -n -u  | numfmt  --field=1 --to=iec | tail -10
+ 
+ 
+ increase disk size
+ https://stackoverflow.com/questions/22381686/how-can-size-of-the-root-disk-in-google-compute-engine-be-increased
+ 
+ 
+ lsblk
+ growpart /dev/sda 1
+ 
+find ~/ -type f -name "config file"
+
+sysctl -w net.netfilter.nf_conntrack_max=1000000
+echo "net.netfilter.nf_conntrack_max=1000000" >> /etc/sysctl.conf
+
+service
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+
+kubectl --namespace default patch svc kiali -p '{"spec": {"type": "NodePort"}}'
+
+open5gs-dbctl add_ue_with_slice admin admin admin admin admin admin
+
+change owner
+sudo chown -R jenkins:jenkins SDPON.1.14.166
+
+memory
+sudo lshw | less
+free -h
+top
+
+alias kubectl='microk8s kubectl'
+alias wkgpa='watch kubectl get pods -A'
+alias 
+
+vi ~/.bashrc
+ . ~/.bashrc
+ 
+ 
+ 
+alias k='microk8s kubectl'
+alias kg='microk8s kubectl get'
+alias kgp='microk8s kubectl get pods'
+alias kgpa='microk8s kubectl get pods -A'
+alias kgs='microk8s kubectl get svc'
+alias kgsa='microk8s kubectl get svc -A'
+alias kgn='microk8s kubectl get ns'
+
+
+alias k='kubectl'
+alias kg='kubectl get'
+alias kgp='kubectl get pods'
+alias kgpa='kubectl get pods -A'
+alias kgs='kubectl get svc'
+alias kgsa='kubectl get svc -A'
+alias kgn='kubectl get ns'
+alias wkgpa='watch kubectl get pods -A'
+alias kpg='kubectl port-forward svc/grafana 3000:3000 -n monitoring'
+
+
+echo 'alias k="kubectl"' >> ~/.bashrc
+echo 'alias kg="kubectl get"' >> ~/.bashrc
+echo 'alias kgp="kubectl get pods"' >> ~/.bashrc
+echo 'alias kgpa="kubectl get pods -A"' >> ~/.bashrc
+echo 'alias kgs="kubectl get svc"' >> ~/.bashrc
+echo 'alias kgsa="kubectl get svc -A"' >> ~/.bashrc
+echo 'alias kgn="kubectl get ns"' >> ~/.bashrc
+echo 'alias wkgpa="watch kubectl get pods -A"' >> ~/.bashrc
+echo 'alias kpg="kubectl port-forward svc/grafana 3000:3000 -n monitoring"' >> ~/.bashrc
+
+NODE_NAME=$(kubectl get nodes -o=jsonpath='{.items[0].metadata.name}')
+TAINT_COMMAND="kubectl taint node ${NODE_NAME} node-role.kubernetes.io/control-plane:NoSchedule-"
+eval "${TAINT_COMMAND}"
+echo "Taint applied to node: ${NODE_NAME}"
+
+
+NODE_NAME=$(kubectl get nodes -o=jsonpath='{.items[0].metadata.name}')
+kubectl taint node "${NODE_NAME}" node-role.kubernetes.io/control-plane:NoSchedule-
+echo "Taint applied to node: ${NODE_NAME}"
+
+install kubernetes cluster 
+https://computingforgeeks.com/install-kubernetes-cluster-ubuntu-jammy/
+https://computingforgeeks.com/install-cri-o-container-runtime-on-ubuntu-linux/
+https://computingforgeeks.com/install-kubernetes-cluster-ubuntu-jammy/
+https://computingforgeeks.com/install-mirantis-cri-dockerd-as-docker-engine-shim-for-kubernetes/
+
+https://hub.armosec.io/docs/welcome  kubescape
+
+1 . install docker through k8s guide (command - apt install docker.io does not install latest
+version of docker and there can be issue in installation of containerd as well)
+https://docs.docker.com/engine/install/ubuntu/
+
+Install Docker Engine on Ubuntu | Docker Documentation 2 – it install latest version of docker as well as containerd.
+2. after installtion there will be /etc/containerd/config.toml file by default . just delete it
+3. systemctl restart containerd
+4. systemctl restart kubelet
+
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16
+--ignore-preflight-errors=...
+
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16  --ignore-preflight-errors=all
+
+kubeadm join 10.128.0.11:6443 --token 03o73h.q0ag4jgu0celsex0 --discovery-token-ca-cert-hash sha256:5f06b06223d1cbc9a3df24aeeea9017b88d61e22d7f2f3328a817ed41efd6063 --ignore-preflight-errors=all
+kubeadm join 10.128.0.11:6443 --token zp7n1q.5jqbgvgrvrma4w57 --discovery-token-ca-cert-hash sha256:1bb585866c539f447479f2216d8053f2ec921d3f9111852585fccead0c6c4e4d
+
+cat <<EOF | sudo tee /etc/sysctl.d/k8s.conf net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+
+#!/bin/bash
+
+Version=$(lsb_release -r --short)
+Codename=$(lsb_release -c --short)
+OSArch=$(uname -m)
+
+echo "Version = $Version"
+echo "Codename = $Codename"
+echo "OS Architecture = $OSArch"
+
+echo \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  
+  sudo apt install -y curl gnupg2 software-properties-common apt-transport-https ca-certificates
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo apt-key add -
+sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable"
+sudo apt update
+sudo apt install -y containerd.io docker-ce docker-ce-cli
+
+
+Version = 18.04
+Codename = bionic
+OS Architecture = x86_64
+
+kind
+https://docs.tigera.io/calico/latest/getting-started/kubernetes/kind
+
+make install 
+sudo apt install make -y
+
+
+k8s install 
+https://computingforgeeks.com/install-cri-o-container-runtime-on-ubuntu-linux/
+https://devopscube.com/setup-kubernetes-cluster-kubeadm/
+
+https://stackoverflow.com/questions/59265021/unable-to-locate-package-kubectl-when-installing-the-kubectl-kubeadm-for-kuberne
+sudo apt-get update && sudo apt-get install -y apt-transport-https curl
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg | sudo apt-key add -
+sudo tee /etc/apt/sources.list.d/kubernetes.list <<EOF
+deb https://apt.kubernetes.io/ kubernetes-xenial main
+EOF
+
+sudo apt-get update
+sudo apt-get install -y kubelet kubeadm kubectl
+sudo apt-mark hold kubelet kubeadm kubectl
+
+steps to create kubernetes dashboard
+important
+https://stackoverflow.com/questions/48443138/kubernetes-dashboard-is-forbidden-all-over-the-site
+
+https://komodor.com/learn/kubernetes-dashboard/
+
+https://www.itwonderlab.com/installating-kubernetes-dashboard/
+
+
+
+kubectl apply -f https://raw.githubusercontent.com/kubernetes/dashboard/v2.6.1/aio/deploy/recommended.yaml
+kubectl create  -f sa.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: admin-user
+  namespace: kube-system
+
+kubectl create  -f rbac.yaml
+rbac.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: admin-user
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cluster-admin
+subjects:
+- kind: ServiceAccount
+  name: admin-user
+  namespace: kube-systemFalten
+
+kubectl -n kube-system create token admin-user
+
+patch loadbalancer
+kubectl patch svc grafana -n monitoring -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl patch svc kepler -n kepler -p '{"spec": {"type": "NodePort"}}'
+
+argocd 
+service
+kubectl patch svc argocd-server -n argocd -p '{"spec": {"type": "LoadBalancer"}}'
+
+kubectl port-forward -n argocd service/argocd-server 8443:80  
+port tunnel 8443
+
+sudo lsof -t -i tcp:8000 | xargs kill -9
+
+kubectl port-forward  service flask-app-svc 32000:80
+port tunnel 
+
+ k get secret argocd-initial-admin-secret -n argocd -o yaml
+ V2RMeUZ3TkF0OVc1Z1V2Tg==
+ password = echo ZVBWenFGM1FFcTJxQjJYNA== | base64 --decode 
+ 4G6HJbcqSesQMW7z
+ R4HXt-07-GFqxDY9
+ ePVzqF3QEq2qB2X4
+ 
+ 
+ 
+ keycloak refrence
+ https://discuss.istio.io/t/how-to-implement-istio-authorization-using-oauth2-and-keycloak/13707
+ 
+  grafana 
+  important
+https://computingforgeeks.com/setup-prometheus-and-grafana-on-kubernetes/
+ username admin
+ password admin
+ 
+ admin/altenlabs*123
+ 
+ MemoryLimit := max(128, 0.4 * 150)
+
+
+
+dharajn5363@gmail.com
+
+
+(user/pass: admin/prom-operator)
+
+
+ 
+ https://www.cybrosys.com/blog/server-monitoring-using-grafana-and-prometheus
+ https://computingforgeeks.com/setup-prometheus-and-grafana-on-kubernetes/
+ https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack
+ 
+ Warning  Unhealthy  3m32s (x11 over 4m16s)  kubelet            Readiness probe failed: Get "http://192.168.243.248:9093/-/ready": dial tcp 192.168.243.248:9093: connect: connection refused
+  Warning  Unhealthy  3m32s (x5 over 4m12s)   kubelet            Liveness probe failed: Get "http://192.168.243.248:9093/-/healthy": dial tcp 192.168.243.248:9093: connect: connection refused
+
+ 
+ kubectl get networkpolicies -n monitoring
+ kubectl -n monitoring delete networkpolicies.networking.k8s.io --all
+ 
+ k get secret grafana -n monitoring -o yaml
+ 
+ http://prometheus-k8s.monitoring.svc.cluster.local:9090/metrics
+ $ kubectl -n prometheus get secret grafana-credentials -o yaml
+apiVersion: v1
+data:
+  password: aHM0amsydAo=
+kind: Secret
+metadata:
+  annotations:
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"v1","data":{"password":"aHM0amsydAo="},"kind":"Secret","metadata":{"annotations":{},"name":"grafana-credentials","namespace":"prometheus"},"type":"Opaque"}
+  creationTimestamp: "2021-10-19T06:32:23Z"
+  name: grafana-credentials
+  namespace: prometheus
+  resourceVersion: "528145"
+  uid: 1ac71188-6ebd-480e-9d7e-bf06ff41dd72
+type: Opaque
+$ echo "cHJvbS1vcGVyYXRvcg==" | base64 -d
+hs4jk2t
+
+ 192.168.176.192 
+
+kubectl get secret --namespace default grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+kubectl get secret --namespace monitoring  prometheus-grafana  -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
+
+http://prometheus-kube-prometheus-prometheus.monitoring:9090/api/v1/query
+
+root@instance-1:/home/ubuntu# k get secret prometheus-grafana -o yaml
+apiVersion: v1
+data:
+  admin-password: cHJvbS1vcGVyYXRvcg==
+  admin-user: YWRtaW4=
+  ldap-toml: ""
+kind: Secret
+metadata:
+  annotations:
+    meta.helm.sh/release-name: prometheus
+    meta.helm.sh/release-namespace: default
+  creationTimestamp: "2023-08-05T13:07:35Z"
+  labels:
+    app.kubernetes.io/instance: prometheus
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/version: 10.0.3
+    helm.sh/chart: grafana-6.58.7
+  name: prometheus-grafana
+  namespace: default
+  resourceVersion: "1675931"
+  uid: 27eb8f0d-b024-43bf-88b9-0d6c2f8b90b6
+type: Opaque
+root@instance-1:/home/ubuntu#  echo "UlNsRGJ6dGRjajN3eVc4ZkZwWE9odXNRSWx2QUZGWU1YN1hxTUZSOQ==" | base64 -d
+  grafana user name=admin  passwored= prom-operator
+ 
+ https://github.com/bitnami/charts/issues/7850
+ 
+ 
+ keycloak
+ github user namee dhanrajnagaraj
+ docker run -d -p 8180:8080 -p 8280:8443 -e KEYCLOAK_USER=admin -e KEYCLOAK_PASSWORD=admin -v /tmp/keycloak/:/tmp --name my-keycloak jboss/keycloak:9.0.3
+ 
+ kubectl  port-forward svc/keycloak 3000
+ kubectl  port-forward svc/keycloak 8080
+ istioctl proxy-config all deploy/productpage-v1 -o json |   jq -r '.. |."secret"?' |   jq -r 'select(.name == "default")' |   jq -r '.tls_certificate.certificate_chain.inline_bytes' |   base64 -d - | openssl x509 -text -noout
+ 
+ X509v3 Subject Alternative Name: critical
+                URI:spiffe://cluster.local/ns/demo/sa/bookinfo-productpage
+
+gcpcloudraj@gmail.com
+Pass@1234567
+ 
+ cd .. | rm -R target | mvn clean install -DskipTests | java -jar target/product-app-0.0.1-SNAPSHOT.jar
+  rm -R target/
+ mvn clean install -DskipTests
+ java -jar target/product-app-0.0.1-SNAPSHOT.jar 
+ 
+ /home/ubuntu/keycloakfinal/spring-boot-keycloak-tutorial/src/main/resources
+
+ /home/ubuntu/keycloakfinal/spring-boot-keycloak-tutorial/target
+ /home/ubuntu/keycloak/keycloak/keycloak/spring-boot-keycloak-tutorial/src/main/resources
+ 
+ http://localhost:8180/realms/springdemo/account/realms/springdemo/protocol/openid-connect/auth?response_type=code&client_id=product-app&redirect_uri=http%3A%2F%2Flocalhost%3A8080%2F&state=c9d6dc2e-44eb-4be1-88b3-157a9fcfe2fe&login=true&scope=openid
+ 
+ https://www.youtube.com/watch?v=BCvXuBqkWrU
+ 
+ 
+ jenkins deployment on kubernetes cluster
+ https://devopscube.com/setup-jenkins-on-kubernetes-cluster/
+ 
+ 
+ 
+ 
+ sudo update-alternatives --config java
+
+ 
+ 
+ 
+ gcpcloudraj@gmail.com
+Pass@1234567
+ 
+ 
+ 
+ KUBESCAPE 
+ LOGIN WITH
+altencalsoftlabs.hyd@gmail.com
+Altenlabs*123
+
+argocd 
+repo github : calsoftpersonallab@gmail.com 
+password: dhanraj@17
+githubtoken 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  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
+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
+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
+dhanrajlab
+
+
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+
+ kubectl port-forward -n argocd service/argocd-server 8443:80
+
+dockerhub credential 
+gmail dhanrajn5363@gmail.com
+username ndhanraj priyabm1810     docker pull ndhanraj/jenkins:pipeline
+
+docker pull ndhanraj/jenkinsdocker:1
+ admin 9604651edafa4b6d9af5dd46d68512bf
+      admin  11d8530504ef751c85d03efb0d9c540407
+jenkins
+https://medium.com/gdgsrilanka/running-jenkins-on-docker-for-a-newbie-855ad376500b
+
+https://forums.docker.com/t/docker-not-found-in-jenkins-pipeline/31683
+
+
+ 0/1 nodes are available: pod has unbound immediate PersistentVolumeClaims. preemption: 0/1 nodes are available: 1 No preemption victims found for incoming pod..
+https://www.datree.io/resources/kubernetes-troubleshooting-fixing-persistentvolumeclaims-error
+
+99b157dd6b9f406ea59bd23600226e92
+
+
+sudo nano /etc/default/jenkins
+HTTP_PORT=8080
+
+plugins 
+docker pipeline 
+dashboard view 
+
+
+
+
+wget -fsSLO https://get.docker.com/builds/Linux/x86_64/docker-17.04.0-ce.tgz \
+  && tar xzvf docker-17.04.0-ce.tgz \
+  && mv docker/docker /usr/local/bin \
+  && rm -r docker docker-17.04.0-ce.tgz
+  
+  worker node notready
+  https://www.digitalocean.com/community/tutorials/how-to-install-jenkins-on-ubuntu-18-04
+  
+  sudo systemctl daemon-reload
+ 1463  sudo service docker restart
+ 
+ sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys B53DC80D13EDEF05
+
+ 
+ sudo kubeadm init --config /etc/kubernetes/kubeadm.yaml --pod-network-cidr=192.168.0.0/16
+sudo kubeadm  --cri-socket /var/run/crio/crio.sock
+sudo kubeadm init --pod-network-cidr=192.168.0.0/16 --cri-socket /var/run/crio/crio.sock  
+--cri-socket /var/run/containerd/containerd.sock
+
+kubeadm join 10.128.0.26:6443 --token jq3wqw.2fofq2szl5xpcnx9 --discovery-token-ca-cert-hash sha256:5bf3a813ea0558776f575bee74c40ad108d5a79319e46e56e90a00545877ce41
+
+kubeadm join 10.128.0.31:6443 --token 98uppd.aym1ioxaa2uqjhzx --discovery-token-ca-cert-hash sha256:cbfbe19427aa96740a8560d023c2fa57729b9f54ccee9fe18ed8a20437bf9675
+
+helm repo add kubescape https://kubescape.github.io/helm-charts/ ; helm repo update ; helm upgrade --install kubescape kubescape/kubescape-cloud-operator -n kubescape --create-namespace --set clusterName=`kubectl config current-context` --set account=54498737-2c68-4f1f-b9a5-d595c844d861 --set kubescape.resources.requests.memory=800Mi \
+--set kubescape.resources.limits.memory=1500Mi \
+--set kubescape.resources.requests.cpu=500m \
+--set kubescape.resources.limits.cpu=1000m
+
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kubescape
+    meta.helm.sh/release-namespace: kubescape
+  creationTimestamp: "2023-06-09T12:40:12Z"
+  finalizers:
+  - kubernetes.io/pvc-protection
+  labels:
+    app: kubevuln
+    app.kubernetes.io/managed-by: Helm
+  name: kubevuln
+  namespace: kubescape
+  resourceVersion: "41294"
+  uid: 66ab9cce-7e2e-471f-8eb7-0b6736c6bc6b
+spec:
+  storageClassName: manual
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  volumeMode: Filesystem
+status:
+  phase: Pending
+
+
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  annotations:
+    meta.helm.sh/release-name: kubescape
+    meta.helm.sh/release-namespace: kubescape
+    pv.kubernetes.io/bind-completed: "yes"
+    pv.kubernetes.io/bound-by-controller: "yes"
+  creationTimestamp: "2023-06-09T12:55:09Z"
+  finalizers:
+  - kubernetes.io/pvc-protection
+  labels:
+    app: kubevuln
+    app.kubernetes.io/managed-by: Helm
+  name: kubevuln
+  namespace: kubescape
+  resourceVersion: "45851"
+  uid: 75933fea-e4b9-4c1e-b87b-96f86cb5f2d4
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 2Gi
+  volumeMode: Filesystem
+  volumeName: kubevuln-pv
+  storageClassName: manual
+status:
+  accessModes:
+  - ReadWriteOnce
+
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  creationTimestamp: "2023-11-16T06:41:09Z"
+  finalizers:
+  - kubernetes.io/pvc-protection
+  labels:
+    app.kubernetes.io/component: zookeeper
+    app.kubernetes.io/instance: my-release
+    app.kubernetes.io/name: zookeeper
+  name: data-my-release-zookeeper-0
+  namespace: platform
+  resourceVersion: "4088"
+  uid: cebe0900-776d-4f9d-88ae-acd17f220a1f
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+  volumeMode: Filesystem
+status:
+  phase: Pending
+
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: pv-volume-2
+  labels:
+    type: local
+spec:
+  storageClassName: manual
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteOnce
+  hostPath:
+    path: "/mnt/data"
+
+
+
+  
+FROM jenkins/jenkins
+
+USER root
+
+# Install Docker dependencies
+RUN apt-get update
+RUN  apt-get install ca-certificates curl gnupg
+RUN  install -m 0755 -d /etc/apt/keyrings
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg |  gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+RUN echo \
+  "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+   tee /etc/apt/sources.list.d/docker.list > /dev/null chmod a+r /etc/apt/keyrings/docker.gpg
+ 
+RUN apt-get update
+RUN  apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin 
+
+# Switch back to the Jenkins user
+USER jenkins
+
+kubescape scan  https://github.com/dhanrajlab/gitops-demo-config.git  --submit --account 54498737-2c68-4f1f-b9a5-d595c844d861
+
+
+
+ failed to sync cluster https://10.96.0.1:443: failed to load initial state of resource BGPFilter.projectcalico.org: connection is unauthorized: bgpfilters.crd.projectcalico.org is forbidden: User "system:serviceaccount:calico-apiserver:calico-apiserver" cannot list resource "bgpfilters" in API group "crd.projectcalico.org" at the cluster scope.
+ 
+ 
+ 
+ kubescape scan  https://github.com/dhanrajlab/demo5g.git --submit --account 54498737-2c68-4f1f-b9a5-d595c844d861
+ 
+ kubescape  
+ https://foxutech.com/what-is-kubescape-and-using-it-for-kubernetes-hardening/
+ 
+ http://34.29.131.171/
+ 
+ keda
+ https://github.com/marcopaga/keda-demo
+ 
+ {
+    "insecure-registries" : ["localhost:32000"]
+}
+
+
+cat <<EOF | sudo tee -a hosts
+10.128.0.44 master
+10.128.0.45 worker-1
+EOF
+
+docker pull ndhanraj/jenkins:pipeline
+
+docker 
+ sudo groupadd docker
+ sudo usermod -aG docker $USER
+ newgrp docker
+ 
+  m kubectl port-forward --namespace default svc/rabbitmq 15672:15672
+  
+  https://github.com/kedacore/keda/issues/3751
+  
+  
+  To resolve this issue, you can try the following steps:
+
+Verify the Kubernetes version: Ensure that you are using a Kubernetes version that supports the autoscaling/v2beta2 API version for HPAs. Versions 1.8 and above generally support this API version. You can check your cluster's Kubernetes version by running:
+
+bash
+Copy code
+kubectl version
+Check the API resources: Confirm that the autoscaling/v2beta2 API resources are available in your cluster. Run the following command to list all the available API resources in the autoscaling group:
+
+bash
+Copy code
+kubectl api-resources --api-group=autoscaling
+Verify if the horizontalpodautoscalers resource is listed, specifically with the v2beta2 version.
+
+Update Kubernetes version: If your cluster is running an older version of Kubernetes that does not support autoscaling/v2beta2, consider upgrading your Kubernetes cluster to a version that supports it. Refer to your cluster provider's documentation for guidance on upgrading the cluster.
+
+Use a different API version: If upgrading the Kubernetes version is not feasible, you can try using a different API version for the HPA. Modify the apiVersion field in your HPA manifest to use a supported version, such as autoscaling/v1. Keep in mind that older API versions might have limited or different features compared to v2beta2.
+
+By ensuring that your Kubernetes cluster supports the required API version and the necessary resources are available, you should be able to resolve the issue and use the HorizontalPodAutoscaler successfully.
+
+
+
+velero  cronjob 
+
+https://velero.io/docs/v1.3.0/api-types/schedule/#:~:text=Schedule%20API%20Type-,Use,process%20on%20a%20repeating%20basis.
+
+
+helm upgrade openebs openebs/openebs \
+        --namespace openebs \
+        --set legacy.enabled=true \
+        --reuse-values
+
+storageclass.kubernetes.io/is-default-class: "true"
+
+Altenlabs*123
+
+
+kubesphere
+
+https://github.com/kubesphere/kubesphere
+
+
+=====================================================================================
+KEDA - Kubernetes Event Driven Autoscaling
+=====================================================================================
+Get started by deploying Scaled Objects to your cluster:
+    - Information about Scaled Objects : https://keda.sh/docs/latest/concepts/
+    - Samples: https://github.com/kedacore/samples
+
+Get information about the deployed ScaledObjects:
+  kubectl get scaledobject [--namespace <namespace>]
+
+Get details about a deployed ScaledObject:
+  kubectl describe scaledobject <scaled-object-name> [--namespace <namespace>]
+
+Get information about the deployed ScaledObjects:
+  kubectl get triggerauthentication [--namespace <namespace>]
+
+Get details about a deployed ScaledObject:
+  kubectl describe triggerauthentication <trigger-authentication-name> [--namespace <namespace>]
+
+Get an overview of the Horizontal Pod Autoscalers (HPA) that KEDA is using behind the scenes:
+  kubectl get hpa [--all-namespaces] [--namespace <namespace>]
+
+
+kubectl run -i --tty load-generator --rm --image=busybox --restart=Never -n autoscale-test -- /bin/sh -c "while sleep 0.01; do wget -q -O- http://php-apache; done"
+
+cloudcasa 
+dhanrajn5363@gmail.com
+Altenlabs*123
+
+keda prometheus
+https://youtu.be/to2stKCPpAI?si=-pbnLdVTj7kX8xDG
+
+kubectl create -f https://raw.githubusercontent.com/keycloak/keycloak-quickstarts/latest/kubernetes-examples/keycloak.yaml
+
+
+jaeger 
+https://github.com/jaegertracing/jaeger-kubernetes
+
+cloudcasa 
+
+kubectl apply -f https://api.cloudcasa.io/kubeclusteragents/adNmWj2LXsoec7QMVlpEVe_L4tc88dTJt_6ijEijrQQ.yaml
+
+helm repo add kubescape https://kubescape.github.io/helm-charts/ ; helm repo update ; helm upgrade --install kubescape kubescape/kubescape-cloud-operator -n kubescape --create-namespace --set clusterName=`kubectl config current-context` --set account=54498737-2c68-4f1f-b9a5-d595c844d861 --set capabilities.relevancy=detect --set clusterServer=`kubectl config view -o jsonpath="{.clusters[?(@.name=='$(kubectl config current-context)')].cluster.server}"`
+
+kubectl apply -f https://api.cloudcasa.io/kubeclusteragents/2-sh_OOFK_gk-VMPgpcSFt6t_4TmthMmeeuqwvkG4x0.yaml
+kubectl apply -f https://api.cloudcasa.io/kubeclusteragents/_KDeYDz3g-y6RuTYRAEMLMuSUAe5gk97_Pi36DdK7JI.yaml
+
+
+cloudcas cli run the cluster from cli
+kubeflow microk8s
+
+sudo usermod -a -G microk8s ubuntu
+sudo chown -R ubuntu ~/.kube
+newgrp microk8s
+
+
+
+kubeflow 
+https://www.kubeflow.org/docs/components/pipelines/v1/installation/localcluster-deployment/
+
+https://charmed-kubeflow.io/docs/get-started-with-charmed-kubeflow
+kubeflow install on kubernetes cluster
+https://www.youtube.com/watch?v=KPEGKKNB63Q
+
+https://github.com/kubeflow/manifests
+
+
+
+https://github.com/kubeflow/examples/blob/master/github_issue_summarization/01_setup_a_kubeflow_cluster.md
+
+
+juju config dex-auth public-url=http://35.202.82.26.nip.io
+juju config oidc-gatekeeper public-url=http://35.202.82.26.nip.io 
+
+juju config dex-auth public-url=http://192.168.0.101.nip.io
+juju config oidc-gatekeeper public-url=http://192.168.0.101.nip.io
+
+juju config dex-auth static-username=user
+juju config dex-auth static-password=user
+
+34.30.13.141
+
+export CONFIG=./kfctl_gcp_iap.yaml
+                                or a URL:
+                                        export CONFIG=https://raw.githubusercontent.com/kubeflow/manifests/v1.0-branch/kfdef/kfctl_gcp_iap.v1.0.0.yaml
+                                        export CONFIG=https://raw.githubusercontent.com/kubeflow/manifests/v1.2-branch/kfdef/kfctl_istio_dex.v1.2.0.yaml
+                                        export CONFIG=https://raw.githubusercontent.com/kubeflow/manifests/v1.2-branch/kfdef/kfctl_aws.v1.2.0.yaml
+                                        export CONFIG=https://raw.githubusercontent.com/kubeflow/manifests/v1.2-branch/kfdef/kfctl_k8s_istio.v1.2.0.yaml
+										
+https://www.datacamp.com/tutorial/kubeflow-tutorial-building-and-deploying-machine-learning-pipelines
+
+
+curl -L https://istio.io/downloadIstio | sh - && chmod -R 777 istio-1.18.0 && mv istio-1.18.0/bin/istioctl /usr/local/bin/
+
+ISTIO_VERSION=$(curl -Ls https://istio.io/downloadIstio | grep -o 'istio-[0-9.]*' | head -n 1) && curl -L https://istio.io/downloadIstio | ISTIO_VERSION=$ISTIO_VERSION sh - && chmod -R 777 $ISTIO_VERSION && mv $ISTIO_VERSION/bin/istioctl /usr/local/bin/
+
+curl -L https://istio.io/downloadIstio | sh - && chmod -R 777 istio-[0-9.]* && mv istio-[0-9.]*/bin/istioctl /usr/local/bin/
+
+kubectl get deployment -n argocd argocd-server -o=jsonpath='{.spec.template.spec.containers[0].image}' | cut -d ":" -f2
+
+kubectl patch deployment keycloak  -p '{"spec": {"containers": "LoadBalancer"}}'
+kubectl set image deployment.v1.apps/nginx-deployment nginx=nginx:1.16.1
+kubectl patch deployment keycloak  -p '{"spec": {"containers": {"image":quay.io/keycloak/keycloak:22.0.1"}}'
+
+
+https://geekflare.com/kubernetes-tools/
+https://mindmajix.com/kubernetes-tools
+
+https://medium.com/cp-massive-programming/managing-an-ubuntu-based-kubernetes-cluster-with-different-cli-tools-fdb2421b9d3
+
+
+robusta
+
+helm repo add robusta https://robusta-charts.storage.googleapis.com && helm repo update
+helm install robusta robusta/robusta -f ./generated_values.yaml --set clusterName=kubernetes-admin
+ helm upgrade robusta robusta/robusta 
+       --reuse-values \
+	   --values.prom.yaml
+	  --set  enablePrometheusStack=true
+ 
+ helm upgrade robusta \
+      --reuse-values \
+	  --set  enablePrometheusStack=true
+	  
+helm upgrade robusta robusta/robusta --values generated_values.yaml --namespace robusta \
+ --create namespace -- wait --values.values.yaml	
+helm repo update
+helm upgrade robusta robusta/robusta -f ./generated_values.yaml --set clusterName=kubernetes-admin --values.prom.yaml
+ 
+ 
+ https://gist.github.com/vfarcic/c5e49d457a607818fac9f53262cc91f3
+
+https://www.youtube.com/watch?v=RZIBUP6-XKs
+helm repo add robusta https://robusta-charts.storage.googleapis.com && helm repo update
+helm install robusta robusta/robusta -f ./generated_values.yaml --set clusterName=<YOUR_CLUSTER_NAME>
+
+root@instance-2:/home/ubuntu/robusta# helm install robusta robusta/robusta -f ./generated_values.yaml --set clusterName=kubernetes-admin
+NAME: robusta
+LAST DEPLOYED: Tue Aug  1 10:16:56 2023
+NAMESPACE: default
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Thank you for installing Robusta 0.10.21
+
+As an open source project, we collect general usage statistics.
+This data is extremely limited and contains only general metadata to help us understand usage patterns.
+If you are willing to share additional data, please do so! It really help us improve Robusta.
+
+You can set sendAdditionalTelemetry: true as a Helm value to send exception reports and additional data.
+This is disabled by default.
+
+To opt-out of telemetry entirely, set a ENABLE_TELEMETRY=false environment variable on the robusta-runner deployment.
+
+
+Visit the web UI at: https://platform.robusta.dev/
+
+
+ ndhanraj/sample-web-app
+ docker build -t ndhanraj/sample-web-app:v1 .
+
+https://github.com/robusta-dev/kubernetes-demos
+
+
+1  automation versioning in git hub
+discuss with lohith about job status done
+2  create github with company name and upload all playbooks add versions with tag
+3  current version of all tools by adding column 
+4  add onprime cluster 
+5 
+
+
+create automation folder  
+
+crio verion
+kubectl describe deployment keda-operator -n keda | grep "Image:"
+kubectl describe deployment prometheus-grafana | grep "Image:"
+k describe deploy argocd-server -n argocd | grep -i "image"
+istioctl version
+k describe deploy calico-apiserver -n calico-apiserver | grep -i image
+kubescape version
+k describe deploy jaeger -n istio-system | grep -i image 
+k9s version 
+
+new github
+username  aclhyd
+password  altenlabs*123
+email altencalsoftlabs.hyd@gmail.com
+token  tokenname token1  date08/08/2023 exp 90days  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
+
+ 172.19.151.200 - root/Password!
+ working 172.19.151.195 - root/Password!
+password
+
+sshpass -p your_password ssh user@hostname
+sshpass -p Password! ssh root@172.19.151.195  
+calsoftlabs/Password!
+
+%Dn!6ra#j3   dhanraj.n@acldigital.com  dhanraj.n hyderabad  59.162.164.6  calsoftlabs@172.19.151.195
+
+https://www.youtube.com/watch?v=govmXpDGLpo
+1. git checkout <branch name>
+   git checkout master
+   
+2   git tag <tagname>
+    git tag  v1.0.0
+	git tag -a v1.0.1 -m " tag for release ver 1.0.1"
+	
+to list tag  
+   git tag
+   
+3. git tag / git show <tagname>
+   	git tag -l "v1.*"
+	
+4. push tag to remote 
+   git push origin <tag name>
+   git push origin v1.0.0
+   pushh all tags once 
+   git push origin --tags
+   git push --tags
+ 
+ 5 delete tags 
+  git tag -d v1.0.0
+  git tag --delete v1.0.0
+  
+  delete tags in remote 
+  git push origin -d v1.0.0
+  git push origin --delete v1.0.0
+  git push origin :v1.0.0
+  
+  delete multiple tags 
+  git tag -d v1.0.0 v1.1.0 (local)
+  git push origin -d v1.0.0 (remote)
+  
+install go 
+https://www.linuxtechi.com/install-go-golang-on-ubuntu-linux/
+
+kepler
+https://sustainable-computing.io/installation/kepler-helm/
+
+
+devtron
+https://github.com/devtron-labs/devtron
+
+root@calsoftlabs:~# helm install devtron devtron/devtron-operator \
+> --create-namespace --namespace devtroncd \
+> --set installer.modules={cicd}
+NAME: devtron
+LAST DEPLOYED: Fri Aug 18 12:07:10 2023
+NAMESPACE: devtroncd
+STATUS: deployed
+REVISION: 1
+TEST SUITE: None
+NOTES:
+Please wait for ~1 minute before running any of the following commands.
+
+1. Run the following command to get the password for the default admin user:
+
+   kubectl -n devtroncd get secret devtron-secret -o jsonpath='{.data.ADMIN_PASSWORD}' | base64 -d
+2. Run the following command to get the dashboard URL for the service type:
+   LoadBalancer
+
+   kubectl get svc -n devtroncd devtron-service -o jsonpath='{.status.loadBalancer.ingress}'
+3. To track the progress of Devtron microservices installation, run the following command:
+
+   kubectl -n devtroncd get installers installer-devtron -o jsonpath='{.status.sync.status}'
+
+   After running this command, if you get the results as:
+   1. "Downloaded" means installation in progress. But you can still start exploring Devtron
+   2. "Applied" means installation is successful.
+   
+   openshift
+   https://youtu.be/DdWCL4eE0vM    openshift with bastionhost on gcp clusters
+   
+   https://www.youtube.com/watch?v=IO_uap5wfUU&list=PL2We04F3Y_43DDcvM1bAxF7YIPglrMdif&index=6   kodeloud youtube channel
+   
+  
+  kind installation
+   
+   install docker, kubectl, kind 
+   https://kind.sigs.k8s.io/docs/user/quick-start/
+   https://kubernetes.io/docs/tasks/tools/install-kubectl-linux/
+   https://docs.docker.com/engine/install/ubuntu/
+   https://docs.tigera.io/calico/latest/getting-started/kubernetes/kind
+   
+   kepler
+   prometheus operator
+   https://sustainable-computing.io/installation/kepler/#deploy-the-prometheus-operator
+   https://sustainable-computing.io/installation/kepler-helm/
+   
+   
+   clever installation
+   metric server enabled :- https://bitnami.com/stack/metrics-server/helm
+   vpa 
+  
+
+kustomization steps  
+   https://blog.knoldus.com/how-to-get-started-with-kustomize-tool-for-kubernetes/
+   
+   
+   kepler/manifests/config/exporter
+   kubelet_node_name_1,redfish_username_1,redfish_password_2,https://redfish_ip_or_hostname_1
+   cluster-kubeadm,admin,admin,https://cluster-kubeadm
+   
+  sudo apt install make -y
+  
+sudo apt-get update  
+sudo apt-get install build-essential
+echo $PATH
+export PATH="/usr/bin:$PATH"
+
+sudo wget -qO /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+sudo chmod a+x /usr/local/bin/yq
+yq --version
+
+
+install go 
+https://www.digitalocean.com/community/tutorials/how-to-install-go-on-ubuntu-20-04
+
+install jq
+sudo apt update
+sudo apt install -y jq
+
+
+https://support.xilinx.com/s/question/0D52E00007Brjz9SAB/how-do-i-resolve-that-proc-sys-file-system-is-not-mounted-on-the-zcu102-board?language=en_US
+create directory 
+mkdir /proc-host
+mount -t proc p /proc-host
+
+ Curl http://servicename.namespace.svc.cluster.local:9090
+ curl http://prometheus-k8s.monitoring.svc.cluster.local:9090
+ 
+ kepler 
+ https://sustainable-computing.io/design/metrics/
+ 
+ kind create cluster --name=$CLUSTER_NAME --config=./local-cluster-config.yaml
+ 
+ cat > values.yaml <<EOF
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+- role: worker
+- role: worker
+networking:
+  disableDefaultCNI: true
+  podSubnet: 192.168.0.0/16
+EOF
+
+cat > ./local-cluster-config.yaml <<EOF
+# ./local-cluster-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: my-cluster
+nodes:
+- role: control-plane
+- role: worker
+- role: worker
+  image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
+  extraMounts:
+  - hostPath: /proc
+    containerPath: /proc-host
+  - hostPath: /usr/src
+    containerPath: /usr/src
+networking:
+  disableDefaultCNI: true
+  podSubnet: 192.168.0.0/16
+EOF
+
+
+cat > ./local-cluster-config.yaml <<EOF
+# ./local-cluster-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: my-cluster
+nodes:
+- role: control-plane
+  image: kindest/node:v1.27.3@sha256:3966ac761ae0136263ffdb6cfd4db23ef8a83cba8a463690e98317add2c9ba72
+  extraMounts:
+  - hostPath: /proc
+    containerPath: /proc-host
+  - hostPath: /usr/src
+    containerPath: /usr/src
+networking:
+  disableDefaultCNI: true
+  podSubnet: 192.168.0.0/16
+EOF
+
+
+
+cat > values.yaml <<EOF
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+- role: control-plane
+  extraPortMappings:
+  - containerPort: 30080
+    hostPort: 30080
+- role: worker
+- role: worker
+networking:
+  disableDefaultCNI: true
+  podSubnet: 192.168.0.0/16
+EOF
+
+delete kind cluster  
+kind get clusters | xargs -t -n1 kind delete cluster --name  
+  
+ kubectl apply --server-side -f manifests/setup
+ until kubectl get servicemonitors --all-namespaces ; do date; sleep 1; echo ""; done
+ kubectl apply -f manifests/
+ 
+ 
+ list ui 
+ show all the application 
+ add kepler
+ 
+ k port-forward svc/argocd-server -n argocd 8080:80
+ 
+ 
+ pass@123
+ alten*123
+ Alten*123
+ altenlab*123
+ altenlabs*123
+ Altenlab*123
+ Altenlabs*123
+ 
+ 
+ devtron
+ curl -O https://raw.githubusercontent.com/devtron-labs/utilities/main/kubeconfig-exporter/kubernetes_export_sa.sh && bash kubernetes_export_sa.sh cd-user devtroncd
+ 
+ 1. Run the following command to get the password for the default admin user:
+
+   kubectl -n devtroncd get secret devtron-secret -o jsonpath='{.data.ADMIN_PASSWORD}' | base64 -d
+2. Run the following command to get the dashboard URL for the service type:
+   LoadBalancer
+
+   kubectl get svc -n devtroncd devtron-service -o jsonpath='{.status.loadBalancer.ingress}'
+3. To track the progress of Devtron microservices installation, run the following command:
+
+   kubectl -n devtroncd get installers installer-devtron -o jsonpath='{.status.sync.status}'
+
+   After running this command, if you get the results as:
+   1. "Downloaded" means installation in progress. But you can still start exploring Devtron
+   2. "Applied" means installation is successful.
+
+ 
+ 
+ cilium on gcp (ebpf capability) how we can imporovise)
+ebpf observability
+ebpf programs
+
+
+1. Deploy Cilium/Suricata and get all the eBPF probe details and telemetry data on HYD Servers.
+2. Understand and classify different eBPF hooks (kprobes,  uprobes and Dynamic Kernle Probes) based on system calls.
+3. Compile 2-3 use cases studies from platform perspective:
+        - Get the Telemetry Data ( Network performance) and Probe data (CPU Cycles/Misses) wrt any Application (Suricata)
+        - Point out the indicators what can improvise in the application code 
+4. Document all the studies/research/use cases and start discussing with Intel on our understanding and possible collaborations. 
+
+
+	search suricata dolcker image
+	configure as pod
+	
+	>>step2
+	have the prometheus see power consumption detail in kepler using diffrent namespace
+	
+	undrestand the power consumption details of application (pod)
+	
+	>>step3
+	how to reduce power consumption of the pod
+
+
+ k delete sa cd-user -n devtroncd
+ cat /etc/kubernetes/admin.conf or cat ~/.kube/config
+ 
+ https://www.digitalocean.com/community/tutorials/how-to-install-suricata-on-ubuntu-20-04
+ 
+ 
+ how to install suricata 
+ https://forum.suricata.io/t/suricata-in-kubernetes/313/2
+ 
+
+
+# Please edit the object below. Lines beginning with a '#' will be ignored,
+# and an empty file will abort the edit. If an error occurs while saving this file will be
+# reopened with the relevant failures.
+#
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  annotations:
+    deprecated.daemonset.template.generation: "5"
+    kubectl.kubernetes.io/last-applied-configuration: |
+      {"apiVersion":"apps/v1","kind":"DaemonSet","metadata":{"annotations":{},"name":"suricata","namespace":"suricata"},"spec":{"selector":{"matchLabels":{"app":"suricata"}},"template":{"metadata":{"labels":{"app":"suricata"},"name":"suricata"},"spec":{"containers":[{"command":["/usr/bin/suricata","-i","eth0","-i","eth1","-i","eth2","-i","eth3"],"image":"jasonish/suricata:latest","name":"suricata","securityContext":{"privileged":trr
+ue},"volumeMounts":[{"mountPath":"/host/dev","name":"dev"},{"mountPath":"/var/run/docker.sock","name":"docker-socket-mount"},{"mountPath":"/var/log/suricata","name":"varlog"}]},{"command":["tail","-F","/var/log/suricata/eve.json"],"image":"bash","name":"suricata-tail-eve-log","resources":{"requests":{"memory":"0Mi"}},"volumeMounts":[{"mountPath":"/var/log/suricata","name":"varlog"}]},{"command":["tail","-F","/var/log/suricata/fast..
+log"],"image":"bash","name":"suricata-tail-fast-log","resources":{"requests":{"memory":"0Mi"}},"volumeMounts":[{"mountPath":"/var/log/suricata","name":"varlog"}]},{"command":["tail","-F","/var/log/suricata/stats.log"],"image":"bash","name":"suricata-tail-stats-log","resources":{"requests":{"memory":"0Mi"}},"volumeMounts":[{"mountPath":"/var/log/suricata","name":"varlog"}]},{"command":["tail","-F","/var/log/suricata/suricata.log"],""
+image":"bash","name":"suricata-tail-suricata-log","resources":{"requests":{"memory":"0Mi"}},"volumeMounts":[{"mountPath":"/var/log/suricata","name":"varlog"}]}],"hostIPC":true,"hostNetwork":true,"hostPID":true,"volumes":[{"hostPath":{"path":"/dev"},"name":"dev"},{"hostPath":{"path":"/var/run/docker.sock"},"name":"docker-socket-mount"},{"emptyDir":{},"name":"varlog"}]}}}}
+  creationTimestamp: "2023-10-05T12:05:09Z"
+  generation: 5
+  name: suricata
+  namespace: suricata
+  resourceVersion: "266708"
+  uid: af6d21db-4c15-44e7-9c13-a0c476214214
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: suricata
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: suricata
+      name: suricata
+    spec:
+      containers:
+      - command:
+        - /usr/bin/suricata
+        - -i
+        - eth0
+        image: jasonish/suricata:latest
+        imagePullPolicy: Always
+        name: suricata
+        resources: {}
+        securityContext:
+          capabilities:
+            add:
+            - NET_ADMIN
+            - SYS_NICE
+            - NET_RAW
+          privileged: true
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /host/dev
+          name: dev
+        - mountPath: /var/run/docker.sock
+          name: docker-socket-mount
+        - mountPath: /var/log/suricata
+          name: varlog
+      - command:
+        - tail
+        - -F
+        - /var/log/suricata/eve.json
+        image: bash
+        imagePullPolicy: Always
+        name: suricata-tail-eve-log
+        resources:
+          requests:
+            memory: "0"
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/log/suricata
+          name: varlog
+      - command:
+        - tail
+        - -F
+        - /var/log/suricata/fast.log
+        image: bash
+        imagePullPolicy: Always
+        name: suricata-tail-fast-log
+        resources:
+          requests:
+            memory: "0"
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/log/suricata
+          name: varlog
+      - command:
+        - tail
+        - -F
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: suricata
+spec:
+  selector:
+    matchLabels:
+      app: suricata
+  template:
+    metadata:
+      labels:
+        app: suricata
+      name: suricata
+    spec:
+      hostIPC: true
+      hostPID: true
+      hostNetwork: true
+      containers:
+        - name: suricata
+          image: jasonish/suricata:latest
+          command:
+            - /usr/bin/suricata
+            - -i
+            - eth0
+
+          securityContext:
+            capabilities:
+              add:
+              - NET_ADMIN
+              - SYS_NICE
+              - NET_RAW
+            privileged: true
+          volumeMounts:
+            - mountPath: /host/dev
+              name: dev
+            - mountPath: /var/run/docker.sock
+              name: docker-socket-mount
+            - name: "varlog"
+              mountPath: /var/log/suricata
+  # suricata-tail-eve-log container
+        - name: suricata-tail-eve-log
+          image: bash
+          command:
+            - tail
+            - -F
+            - /var/log/suricata/eve.json
+          resources:
+            requests:
+              memory: 0Mi
+          volumeMounts:
+            - name: "varlog"
+              mountPath: /var/log/suricata
+        # suricata-tail-fast-log container
+        - name: suricata-tail-fast-log
+          image: bash
+          command:
+            - tail
+            - -F
+            - /var/log/suricata/fast.log
+          resources:
+            requests:
+              memory: 0Mi
+          volumeMounts:
+            - name: "varlog"
+              mountPath: /var/log/suricata
+        # suricata-tail-stats-log container
+        - name: suricata-tail-stats-log
+          image: bash
+          command:
+            - tail
+            - -F
+            - /var/log/suricata/stats.log
+          resources:
+            requests:
+              memory: 0Mi
+          volumeMounts:
+            - name: "varlog"
+              mountPath: /var/log/suricata
+        # suricata-tail-suricata-log container
+        - name: suricata-tail-suricata-log
+          image: bash
+          command:
+            - tail
+            - -F
+            - /var/log/suricata/suricata.log
+          resources:
+            requests:
+              memory: 0Mi
+          volumeMounts:
+            - name: "varlog"
+              mountPath: /var/log/suricata
+      volumes:
+        - name: dev
+          hostPath:
+            path: /dev
+        - name: docker-socket-mount
+          hostPath:
+            path: /var/run/docker.sock
+        - name: "varlog"
+          emptyDir: {}
+~
+
+
+https://www.kubecost.com/kubernetes-autoscaling/kubernetes-hpa/
+
+
+		  
+
+clever and kepler 
+https://www.youtube.com/watch?v=qzeqk262n80
+https://www.youtube.com/watch?v=tpNdXZRQBMI
+
+power consumption = cpu utilization -->cpu instructions
+ no of circuits   capacitance     frequency
+ running 
+                      no of 
+					cpu instruction        
+ 
+
+ubuntu@server:~$ cat /proc/sys/fs/inotify/max_user_instances 
+128
+ubuntu@server:~$ sudo sysctl fs.inotify.max_user_instances=8192
+fs.inotify.max_user_instances = 8192
+ubuntu@server:~$ cat /proc/sys/fs/inotify/max_user_instances 
+8192
+
+
+steps for clever
+clone sustainable github 
+
+monitoring       prometheus-k8s          ClusterIP   10.96.146.179   <none>        9090/TCP,8080/TCP 
+
+
+https://github.com/open-telemetry/opentelemetry-helm-charts/blob/main/charts/opentelemetry-demo/values.yaml
+https://github.com/open-telemetry/opentelemetry-helm-charts/tree/main/charts
+
+1 monitoring installed
+2 clone 3 repos
+   1 kepler
+   2 sunya-ch kepler model server https://github.com/sunya-ch/kepler-model-server.git
+   3 sunya -ch kepler model -db https://github.com/sunya-ch/kepler-model-db.git
+   
+3 kubectl patch ds kepler-exporter -n kepler -p '{'spec":{"template":{"spec":{"containers": [{"name": "kepler-exporter", "imagePullPolicy": "IfNotPresent"}]}}}}'
+  kubectl patch ds kepler-exporter -n kepler --type='json' -p='[{"op": "replace", "path": "/spec/template/spec/containers/0/imagePullPolicy", "value": "IfNotPresent"}]'
+
+4 test kepler metrics
+  cd ../kepler-model-server/
+  cd src/profile/
+  git checkout new-pipeline-demo
+  ./script.sh port_forward
+  curl localhost:30090/api/v1/query?query="last_over_time(kepler_node_package_joules_total\[1m\])"
+  
+  
+  prepare python environment
+  conda activate kepler-model-server
+  
+  https://www.youtube.com/watch?v=kXf5wOC2wYo
+  
+  https://github.com/sustainable-computing-io/kepler-model-server/tree/main/tests
+  
+  
+  https://github.com/sunya-ch/kepler-model-server/tree/main/src/profile
+  https://github.com/sustainable-computing-io/kepler-model-server/tree/main
+  https://sustainable-computing.io/kepler_model_server/pipeline/
+  
+  https://github.com/nephio-project/docs/blob/v1.0.1/install-guide/README.md
+  
+  create document for sericata and kepler document 
+  
+  
+  opentelemetry
+  https://www.youtube.com/watch?v=Txe4ji4EDUA
+  
+  https://www.youtube.com/watch?v=UEwkn0iHDzA&list=PLNxnp_rzlqf6z1cC0IkIwp6yjsBboX945&index=1
+
+https://www.aspecto.io/blog/what-is-opentelemetry-the-infinitive-guide/?utm_source=youtube&utm_medium=link-in-bio&utm_campaign=opentelemetry-bootcamp-episode-1
+
+https://www.aspecto.io/opentelemetry-bootcamp/?utm_source=youtube&utm_medium=link-in-bio&utm_campaign=opentelemetry-bootcamp-episode-1
+
+
+Github
+https://github.com/aspecto-io/opentelemetry-bootcamp
+
+https://www.youtube.com/watch?v=0aamt2DrwKo&t=149s
+
+kubectl run addwords \
+  --image=ghcr.io/pauldotyu/simple-redis-pusher:latest \
+  --env="REDIS_HOST=${REDIS_HOST}" \
+  --env="REDIS_PORT=6379" \
+  --env="REDIS_LIST=words" \
+  --env="REDIS_KEY=${REDIS_KEY}" \
+  --env="ITEM_COUNT=10000" \
+  --restart=Never
+
+# wait until the pod status shows completed
+kubectl get po addwords -w
+
+azure
+https://portal.azure.com/?quickstart=true#view/Microsoft_Azure_Resources/QuickstartCenterBlade
+
+make kind-deploy-prom IMG=carbon-aware-keda-operator:v1
+kubectl apply --server-side -f hack/prometheus/manifests/setup
+kubectl apply -f hack/prometheus/manifests/
+kubectl apply -f hack/keda/keda-2.10.0.yaml
+
+
+redis host 172.17.0.2 127.0.0.1:6379
+redis key : Hello
+
+
+REDIS_HOST=127.0.0.1
+REDIS_KEY=Hello
+
+kubectl run addwords \
+  --image=ghcr.io/pauldotyu/simple-redis-pusher:latest \
+  --env="REDIS_HOST=${REDIS_HOST}" \
+  --env="REDIS_PORT=6379" \
+  --env="REDIS_LIST=words" \
+  --env="REDIS_KEY=${REDIS_KEY}" \
+  --env="ITEM_COUNT=10000" \
+  --restart=Never
+  
+  azure commands
+  az --version
+  az login
+  
+  
+  opentelemetry
+  https://youtu.be/wyLqXjp4lXI?si=1YWYsUe_n34ph6Oa automatic instrumentation
+  https://youtu.be/-lEsDNMs-QA?si=xzsqtUaL8VRh7Wab     springboot+ jager+ automatic  https://github.com/DevProblems/springboot-opentelemetry-jaeger
+  https://youtu.be/-lEsDNMs-QA?si=dMRAVQ_Yx1PcxBuU     springboot+ jager+ automatic  https://github.com/DevProblems/springboot-opentelemetry-jaeger
+  https://youtu.be/B-ZZk4HZrfY?si=zUxHe_hAWtykMPJa     springboot+ prometheus  Github: https://github.com/nlinhvu/hello-service
+  https://www.youtube.com/watch?v=a1qWMzpDuI4
+  https://www.youtube.com/watch?v=_UwbFYLev-8                              github: https://github.com/Bhoopesh123/OpenTelemetry/tree/main
+  https://youtu.be/GJAhtrc5IbQ?si=xjEdjFGvygHRmzxM    opentelemetry inject automatically 
+  https://medium.com/opentelemetry/deploying-the-opentelemetry-collector-on-kubernetes-2256eca569c9
+  
+  https://github.com/open-telemetry/opentelemetry-operator/blob/main/README.md
+  
+  opentelemetry operator  
+  1 certmanager  https://cert-manager.io/docs/installation/helm/
+  2 operator https://github.com/open-telemetry/opentelemetry-helm-charts/tree/main/charts/opentelemetry-operator
+  
+  https://youtu.be/wyLqXjp4lXI?si=wUTGdwair2KPdBr7
+ demo  https://github.com/timescale/opentelemetry-demo
+ https://www.youtube.com/watch?v=xe3BemIejVI&t=3363s
+ 
+  opentelemetry operator  https://github.com/open-telemetry/opentelemetry-operator
+  installing the operator and collector 
+  https://docs.opsverse.io/observnow/collection/application-integration/otel-operator-for-k8s/
+  sample k8s app manifests:
+  https://github.com/OpsVerseIO/examples/tree/main/webinars/01-auto-instr-app-otel-op/deploy
+ 
+https://medium.com/opentelemetry/using-opentelemetry-auto-instrumentation-agents-in-kubernetes-869ec0f42377 
+  
+  https://www.youtube.com/watch?v=wyLqXjp4lXI auto instrumentation   https://github.com/OpsVerseIO/examples/tree/main/webinars/01-auto-instr-app-otel-op/deploy
+  https://www.youtube.com/watch?v=xe3BemIejVI
+ 
+https://www.infracloud.io/blogs/opentelemetry-auto-instrumentation-jaeger/
+
+http://opentelemetry-demo-frontendproxy:8080 
+  
+  
+  info@westido.com 
+  
+  
+  signoz
+  
+  https://signoz.io/docs/
+  https://www.youtube.com/watch?v=oZkFfMN57yI&list=PL0N8FjJpzGl_VLU-PedUdnWXUybA90pcP&index=15
+  
+  mangodb version check
+  https://www.mongodb.com/docs/manual/tutorial/install-mongodb-on-ubuntu/#std-label-install-mdb-community-ubuntu
+  mongod --version
+  
+ 
+
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gce-standard
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: kubernetes.io/gce-pd
+parameters:
+  type: pd-standard
+
+
+
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: gce-standard
+  annotations:
+    storageclass.kubernetes.io/is-default-class: "true"
+provisioner: kubernetes.io/local-path
+parameters:
+  type: local
+  
+  
+ Download rancher.io/local-path storage class:
+
+kubectl apply -f https://raw.githubusercontent.com/rancher/local-path-provisioner/master/deploy/local-path-storage.yaml
+
+Check with kubectl get storageclass
+
+Make this storage class (local-path) the default:
+
+kubectl patch storageclass local-path -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+
+
+signoz kubeadm
+signoz1 docker 
+signoz2 k8sinfra
+signoz3 kind
+
+python3 -m venv .venv
+source .venv/bin/activate
+pip install opentelemetry-distro==0.38b0
+pip install opentelemetry-exporter-otlp==1.17.0
+opentelemetry-bootstrap --action=install
+
+OTEL_RESOURCE_ATTRIBUTES=service.name=abc \
+OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:4317" \
+OTEL_EXPORTER_OTLP_PROTOCOL=grpc opentelemetry-instrument <your_run_command>
+
+NAME                 PROVISIONER             RECLAIMPOLICY   VOLUMEBINDINGMODE      ALLOWVOLUMEEXPANSION   AGE
+standard (default)   rancher.io/local-path   Delete          WaitForFirstConsumer   false                  46m
+
+whitepaper on opentelemetry
+use cases 
+how it help users
+how to integrate
+how to integrate signoz
+
+
+https://tasrieit.com/simple-easy-signoz-tutorial/   sinoz on aws steps
+
+https://signoz.io/docs/faqs/installation/#:~:text=Can%20I%20install%20SigNoz%20without,not%20supported%20as%20of%20today.
+
+
+nginx ingress
+https://kubernetes.github.io/ingress-nginx/deploy/
+
+kepler-control-plane   Ready    control-plane   24m   v1.27.3
+kepler-worker          Ready    <none>          24m   v1.27.3
+kepler-worker2         Ready    <none>          24m   v1.27.3
+
+https://charts.helm.sh/incubator, https://charts.bitnami.com/bitnami, https://charts.bitnami.com/bitnami. Please add the missing repos via 'helm repo add'
+
+helm repo add incubator  https://charts.helm.sh/incubator
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm repo add  bit nami2 https://charts.bitnami.com/bitnami
+helm repo add 
+
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel
+spec:
+  config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 15
+      batch:
+        send_batch_size: 10000
+        timeout: 10s
+    exporters:
+      debug:
+      otlp/jaeger:
+        endpoint: "jaeger.default:4317"
+        tls:
+          insecure: true
+	  prometheus:
+        endpoint: "localhost:8888"
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: []
+          exporters: [debug,otlp/jaeger,prometheus]
+
+
+apiVersion: opentelemetry.io/v1alpha1
+kind: OpenTelemetryCollector
+metadata:
+  name: otel
+spec:
+  config: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+          http:
+    processors:
+      memory_limiter:
+        check_interval: 1s
+        limit_percentage: 75
+        spike_limit_percentage: 15
+      batch:
+        send_batch_size: 10000
+        timeout: 10s
+    exporters:
+	  debug:
+      prometheus:
+        endpoint: "prometheus-kube-prometheus-prometheus:9090"
+      otlp/jaeger:
+        endpoint: "jaeger.default:4317"
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: []
+          exporters: [debug,otlp/jaeger, prometheus]
+		  
+kubecon  https://events.linuxfoundation.org/archive/2023/kubecon-cloudnativecon-europe/
+kubernetes landscape  https://landscape.cncf.io/
+
+		  
+
+https://www.atatus.com/blog/prometheus-architecture-scalability/#:~:text=may%20be%20required.-,Key%20Limitations%20of%20Prometheus,metrics%20are%20difficult%20to%20scale.
+prometheus : https://www.opsramp.com/guides/prometheus-monitoring/prometheus-vs-grafana/  https://signoz.io/blog/kubernetes-monitoring-tools/
+
+ebpf https://www.itprotoday.com/it-operations-and-management/when-not-use-ebpf-observability-and-security#close-modal
+newrelic https://www.experts-exchange.com/articles/16459/Pros-and-Cons-to-using-New-Relic-for-performance-monitoring.html
+crio and containerd  https://humalect.com/blog/containerd-vs-docker#:~:text=Containerd%20handles%20container%20execution%20and,container%20runtime%20for%20Kubernetes%20clusters
+netdata: https://www.pcwdld.com/netdata-review/
+keda :https://doc.kaas.thalesdigital.io/docs/Features/keda
+kyverno: https://security.padok.fr/en/blog/security-kyverno-kubernetes
+tetragon: https://cloudyuga.guru/hands_on_lab/ebpf-logs-with-tetragon   https://addozhang.medium.com/quick-exploration-of-tetragon-a-security-observability-and-execution-tool-based-on-ebpf-b67ddc84886d
+skywalking: https://skywalking.apache.org/docs/main/v9.0.0/en/concepts-and-designs/service-agent/
+calico: https://archive.eksworkshop.com/beginner/120_network-policies/calico-enterprise/  https://learn.microsoft.com/en-us/azure/aks/use-network-policies
+jaeger https://www.trustradius.com/products/jaeger/reviews?qs=pros-and-cons#overview
+opentelemetry
+
+
+https://docs.k8sgpt.ai/getting-started/getting-started/
+efk stack https://devopscube.com/setup-efk-stack-on-kubernetes/
+KAMUS https://github.com/Soluto/kamus
+
+docker tag local-image:tagname new-repo:tagname
+docker push new-repo:tagname

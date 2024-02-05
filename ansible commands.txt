@@ -1,0 +1,15 @@
+ansible all -m setup -a "filter=ansible_memoey_mb"
+ansible-doc -l | grep gcp
+ansible all -m file -a "path=/etc/ansible/facts.d state=directory" -b
+ansible all -m file -a "path=/etc/ansible/facts.d/get_version.facts state=absent" -b
+ansible all -m setup -s "filter=ansible_local"
+ansible all -m ping
+ansible-doc -t inventory -i
+cat ansible.cfg 
+ansible-inventory -i <AWS PLUGIN FILE NAME> --graph
+cat ansible_plugin.txt
+ansible-inventory -i demo.aws_ec2.yml --list
+ansible-inventory -i demo.aws_ec2.yml --graph
+ansible all -i demo.aws_ec3.yml -u ec2-user -m ping
+ansible-playbook -i /root/ansible/demo.aws_ec2.yml -u ec2-user intro_playbook.yml
+playbook_intro /install_webserver.yml --syntax-check
