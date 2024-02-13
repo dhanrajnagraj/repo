@@ -1792,3 +1792,10 @@ KAMUS https://github.com/Soluto/kamus
 
 docker tag local-image:tagname new-repo:tagname
 docker push new-repo:tagname
+
+
+kuberntes installation 
+https://github.com/alijahnas/CKA-practice-exercises  
+https://devopstitan.com/cka-practice-question-01/
+https://devopstitan.com/ckubernetes-practice-questions/
+https://github.com/devopshubproject/cka-lab/tree/main/Task1

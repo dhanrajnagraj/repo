@@ -421,3 +421,351 @@ data:
 kind: ConfigMap
 metadata:
   name: birke
+  
+--------------------------------
+
+RBAC ServiceAccount Permissions
+Control ServiceAccount permissions using RBAC
+
+There are existing Namespaces ns1 and ns2 .
+
+Create ServiceAccount pipeline in both Namespaces.
+
+These SAs should be allowed to view almost everything in the whole cluster. You can use the default ClusterRole view for this.
+
+These SAs should be allowed to create and delete Deployments in their Namespace.
+
+Verify everything using kubectl auth can-i .
+
+RBAC Info
+
+Let's talk a little about RBAC resources:
+
+A ClusterRole|Role defines a set of permissions and where it is available, in the whole cluster or just a single Namespace.
+
+A ClusterRoleBinding|RoleBinding connects a set of permissions with an account and defines where it is applied, in the whole cluster or just a single Namespace.
+
+Because of this there are 4 different RBAC combinations and 3 valid ones:
+
+Role + RoleBinding (available in single Namespace, applied in single Namespace)
+ClusterRole + ClusterRoleBinding (available cluster-wide, applied cluster-wide)
+ClusterRole + RoleBinding (available cluster-wide, applied in single Namespace)
+Role + ClusterRoleBinding (NOT POSSIBLE: available in single Namespace, applied cluster-wide)
+
+k get clusterrole view # there is default one
+
+k create clusterrole -h # examples
+
+k create rolebinding -h # examples
+
+k auth can-i delete deployments --as system:serviceaccount:ns1:pipeline -n ns1
+
+Solution
+
+# create SAs
+k -n ns1 create sa pipeline
+k -n ns2 create sa pipeline
+
+# use ClusterRole view
+k get clusterrole view # there is default one
+k create clusterrolebinding pipeline-view --clusterrole view --serviceaccount ns1:pipeline --serviceaccount ns2:pipeline
+
+# manage Deployments in both Namespaces
+k create clusterrole -h # examples
+k create clusterrole pipeline-deployment-manager --verb create,delete --resource deployments
+# instead of one ClusterRole we could also create the same Role in both Namespaces
+
+k -n ns1 create rolebinding pipeline-deployment-manager --clusterrole pipeline-deployment-manager --serviceaccount ns1:pipeline
+k -n ns2 create rolebinding pipeline-deployment-manager --clusterrole pipeline-deployment-manager --serviceaccount ns2:pipeline
+
+Verify
+
+# namespace ns1 deployment manager
+k auth can-i delete deployments --as system:serviceaccount:ns1:pipeline -n ns1 # YES
+k auth can-i create deployments --as system:serviceaccount:ns1:pipeline -n ns1 # YES
+k auth can-i update deployments --as system:serviceaccount:ns1:pipeline -n ns1 # NO
+k auth can-i update deployments --as system:serviceaccount:ns1:pipeline -n default # NO
+
+# namespace ns2 deployment manager
+k auth can-i delete deployments --as system:serviceaccount:ns2:pipeline -n ns2 # YES
+k auth can-i create deployments --as system:serviceaccount:ns2:pipeline -n ns2 # YES
+k auth can-i update deployments --as system:serviceaccount:ns2:pipeline -n ns2 # NO
+k auth can-i update deployments --as system:serviceaccount:ns2:pipeline -n default # NO
+
+# cluster wide view role
+k auth can-i list deployments --as system:serviceaccount:ns1:pipeline -n ns1 # YES
+k auth can-i list deployments --as system:serviceaccount:ns1:pipeline -A # YES
+k auth can-i list pods --as system:serviceaccount:ns1:pipeline -A # YES
+k auth can-i list pods --as system:serviceaccount:ns2:pipeline -A # YES
+k auth can-i list secrets --as system:serviceaccount:ns2:pipeline -A # NO (default view-role doesn't allow)
+---
+
+RBAC User Permissions
+Control User permissions using RBAC
+There is existing Namespace applications .
+
+User smoke should be allowed to create and delete Pods, Deployments and StatefulSets in Namespace applications.
+User smoke should have view permissions (like the permissions of the default ClusterRole named view ) in all Namespaces but not in kube-system .
+Verify everything using kubectl auth can-i .
+
+RBAC Info
+
+Let's talk a little about RBAC resources:
+
+A ClusterRole|Role defines a set of permissions and where it is available, in the whole cluster or just a single Namespace.
+
+A ClusterRoleBinding|RoleBinding connects a set of permissions with an account and defines where it is applied, in the whole cluster or just a single Namespace.
+
+Because of this there are 4 different RBAC combinations and 3 valid ones:
+
+Role + RoleBinding (available in single Namespace, applied in single Namespace)
+ClusterRole + ClusterRoleBinding (available cluster-wide, applied cluster-wide)
+ClusterRole + RoleBinding (available cluster-wide, applied in single Namespace)
+Role + ClusterRoleBinding (NOT POSSIBLE: available in single Namespace, applied cluster-wide)
+
+tip
+# 1)
+k -n applications create role -h
+k -n applications create rolebinding -h
+
+# 2)
+# as of now it’s not possible to create deny-RBAC in K8s.
+# so we allow for all other namespaces
+
+# 3)
+k auth can-i -h
+k auth can-i create deployments --as smoke -n applications
+
+Solution
+
+⁣1) RBAC for Namespace applications
+
+
+k -n applications create role smoke --verb create,delete --resource pods,deployments,sts
+k -n applications create rolebinding smoke --role smoke --user smoke
+
+⁣2) view permission in all Namespaces but not kube-system
+
+
+As of now it’s not possible to create deny-RBAC in K8s
+
+So we allow for all other Namespaces
+
+
+k get ns # get all namespaces
+k -n applications create rolebinding smoke-view --clusterrole view --user smoke
+k -n default create rolebinding smoke-view --clusterrole view --user smoke
+k -n kube-node-lease create rolebinding smoke-view --clusterrole view --user smoke
+k -n kube-public create rolebinding smoke-view --clusterrole view --user smoke
+
+
+Verify
+
+# applications
+k auth can-i create deployments --as smoke -n applications # YES
+k auth can-i delete deployments --as smoke -n applications # YES
+k auth can-i delete pods --as smoke -n applications # YES
+k auth can-i delete sts --as smoke -n applications # YES
+k auth can-i delete secrets --as smoke -n applications # NO
+k auth can-i list deployments --as smoke -n applications # YES
+k auth can-i list secrets --as smoke -n applications # NO
+k auth can-i get secrets --as smoke -n applications # NO
+
+# view in all namespaces but not kube-system
+k auth can-i list pods --as smoke -n default # YES
+k auth can-i list pods --as smoke -n applications # YES
+k auth can-i list pods --as smoke -n kube-public # YES
+k auth can-i list pods --as smoke -n kube-node-lease # YES
+k auth can-i list pods --as smoke -n kube-system # NO
+
+------------
+Ingress Create
+Create Services for existing Deployments
+
+There are two existing Deployments in Namespace world which should be made accessible via an Ingress.
+
+First: create ClusterIP Services for both Deployments for port 80 . The Services should have the same name as the Deployments.
+
+Tip
+
+k expose deploy -h
+
+Solution
+
+k -n world expose deploy europe --port 80
+k -n world expose deploy asia --port 80
+
+----
+Create Ingress for existing Services
+The Nginx Ingress Controller has been installed.
+
+Create a new Ingress resource called world for domain name world.universe.mine . The domain points to the K8s Node IP via /etc/hosts .
+
+The Ingress resource should have two routes pointing to the existing Services:
+
+http://world.universe.mine:30080/europe/
+
+and
+
+http://world.universe.mine:30080/asia/
+
+
+Explanation
+
+Check the NodePort Service for the Nginx Ingress Controller to see the ports
+
+k -n ingress-nginx get svc ingress-nginx-controller
+
+We can reach the NodePort Service via the K8s Node IP:
+
+
+curl http://172.30.1.2:30080
+
+And because of the entry in /etc/hosts we can call
+
+
+curl http://world.universe.mine:30080
+
+Tip 1
+
+The Ingress resources needs to be created in the same Namespace as the applications.
+
+Find out the ingressClassName with:
+
+
+k get ingressclass
+
+You can work with this template
+
+
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: world
+  namespace: world
+  annotations:
+    # this annotation removes the need for a trailing slash when calling urls
+    # but it is not necessary for solving this scenario
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx # k get ingressclass
+  rules:
+  - host: "world.universe.mine"
+  ...
+  
+  
+  
+solutions
+  
+  apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: world
+  namespace: world
+  annotations:
+    # this annotation removes the need for a trailing slash when calling urls
+    # but it is not necessary for solving this scenario
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx # k get ingressclass
+  rules:
+  - host: "world.universe.mine"
+    http:
+      paths:
+      - path: /europe
+        pathType: Prefix
+        backend:
+          service:
+            name: europe
+            port:
+              number: 80
+      - path: /asia
+        pathType: Prefix
+        backend:
+          service:
+            name: asia
+            port:
+              number: 80
+
+
+--------------------------
+Scheduling Priority
+Find Pod with highest priority
+
+Find the Pod with the highest priority in Namespace management and delete it.
+
+
+Tip
+
+Priority is an attribute in the Pod specification.
+
+solutions
+
+k -n management get pod -oyaml
+
+k -n management get pod -o yaml | grep -i priority -B 20
+
+k -n management delete pod sprinter
+
+-----
+
+Scheduling Priority
+Create Pod with higher priority
+In Namespace lion there is one existing Pod which requests 1Gi of memory resources.
+
+That Pod has a specific priority because of its PriorityClass.
+
+Create new Pod named important of image nginx:1.21.6-alpine in the same Namespace. It should request 1Gi memory resources.
+
+Assign a higher priority to the new Pod so it's scheduled instead of the existing one.
+
+Both Pods won't fit in the cluster.
+
+Tip
+
+Check for existing PriorityClasses, and the the one of the existing Pod
+
+k -n lion get pod
+
+k -n lion get pod -oyaml | grep priority
+
+k get priorityclass
+
+
+Solution
+
+Generate the Pod yaml:
+
+
+k -n lion run important --image=nginx:1.21.6-alpine -oyaml --dry-run=client > pod.yaml
+
+Then change it to and apply
+
+
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    run: important
+  name: important
+  namespace: lion
+spec:
+  priorityClassName: level3
+  containers:
+  - image: nginx:1.21.6-alpine
+    name: important
+    resources:
+      requests:
+        memory: 1Gi
+  dnsPolicy: ClusterFirst
+  restartPolicy: Always
+
+Now there should only be the new Pod running
+
+
+k -n lion get pod
+
+We can also see logs about this procedure like: Preempted by lion/important on node controlplane
+
+
+k get events -A --sort-by='{.metadata.creationTimestamp}'
